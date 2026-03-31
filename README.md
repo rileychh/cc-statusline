@@ -43,6 +43,22 @@ cd cc-statusline
 go install .
 ```
 
+Or install using Nix flakes:
+
+```nix
+{
+  inputs = {
+    cc-statusline.url = "github:rileychh/cc-statusline"
+    cc-statusline.inputs.nixpkgs.follows = "nixpkgs";
+  };
+
+  # In your system packages:
+  environment.systemPackages = [
+    inputs.cc-statusline.packages.${pkgs.stdenv.hostPlatform.system}.default
+  ];
+}
+```
+
 ## Configure
 
 Add to `~/.claude/settings.json`:
@@ -57,6 +73,17 @@ Add to `~/.claude/settings.json`:
 ```
 
 The binary must be in your `PATH` (e.g. in `GOBIN`).
+
+If you're using Nix, it can be installed with a single configuration:
+
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "nix run github:rileychh/cc-statusline"
+  }
+}
+```
 
 ## Customization
 
