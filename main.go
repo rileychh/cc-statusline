@@ -116,10 +116,12 @@ func gitBranch(dir string) string {
 }
 
 func cwdSegment(s *StatusInput) string {
-	cwd := osc8("file://"+s.CWD, shortenPath(s.CWD))
 	if s.Worktree != nil {
+		origDir := s.Worktree.OriginalCWD
+		cwd := osc8("file://"+origDir, shortenPath(origDir))
 		return cwd + " 󰌹 " + s.Worktree.Name
 	}
+	cwd := osc8("file://"+s.CWD, shortenPath(s.CWD))
 	branch := gitBranch(s.CWD)
 	if branch == "" {
 		return cwd + " "
