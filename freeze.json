@@ -1,0 +1,10 @@
+{
+  "theme": "github-dark",
+  "padding": [0,29,-30,16],
+  "font": {
+    "family": "FireCode Nerd Font",
+    "file": "/Users/Riley/Library/Fonts/FiraCodeNerdFont-Regular.ttf",
+    "size": 16
+  },
+  "line_height": 2
+}
