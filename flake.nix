@@ -11,7 +11,6 @@
   };
 
   outputs = {
-    self,
     nixpkgs,
     flake-utils,
     go-overlay,
@@ -27,14 +26,14 @@
       in {
         packages.default = pkgs.buildGoApplication {
           pname = "cc-statusline";
-          version = "0.1.0";
+          version = "1.2.0";
           src = ./.;
           inherit go;
           modules = ./govendor.toml;
         };
 
         devShells.default = pkgs.mkShell {
-          buildInputs = with pkgs; [
+          buildInputs = [
             go.withDefaultTools
             go-overlay.packages.${system}.govendor
           ];
