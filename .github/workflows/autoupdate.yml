@@ -1,0 +1,55 @@
+name: Auto-update Nix package
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  id-token: write
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: DeterminateSystems/determinate-nix-action@main
+      - uses: DeterminateSystems/flakehub-cache-action@main
+
+      - name: Update version in flake.nix
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//')
+          if [ -z "$VERSION" ]; then
+            echo "No git tag found, skipping version update"
+            exit 0
+          fi
+          sed -i "s/version = \"[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\"/version = \"$VERSION\"/" flake.nix
+          echo "Updated version to $VERSION"
+
+      - name: Regenerate govendor lockfile
+        run: nix develop --command govendor
+
+      - name: Verify build
+        run: nix build
+
+      - name: Open pull request
+        uses: peter-evans/create-pull-request@v8
+        with:
+          commit-message: "chore: update Nix package"
+          title: "chore: update Nix package"
+          body: |
+            Automated update triggered by a push to `main`.
+
+            - Updated version in `flake.nix` from the latest git tag
+            - Regenerated `govendor.toml` lockfile
+            - Verified build with `nix build`
+          branch: nix-autoupdate
+          delete-branch: true
