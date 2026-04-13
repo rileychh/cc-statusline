@@ -7,8 +7,11 @@ import (
 	"io"
 	"os"
 	"os/exec"
+
+	"golang.org/x/term"
 	"path/filepath"
 	"strings"
+	"unicode/utf8"
 )
 
 // Input types
@@ -80,7 +83,21 @@ type StatusInput struct {
 
 // Segment rendering
 
-type segment func(*StatusInput) string
+type segmentResult struct {
+	text    string                         // rendered output (may contain OSC 8 escapes)
+	display int                            // visible character count
+	compact func(budget int) segmentResult // nil if not compactable
+}
+
+func seg(s string) segmentResult {
+	return segmentResult{text: s, display: utf8.RuneCountInString(s)}
+}
+
+func seg8(text, display string) segmentResult {
+	return segmentResult{text: text, display: utf8.RuneCountInString(display)}
+}
+
+type segment func(*StatusInput) segmentResult
 
 func shortenPath(dir string) string {
 	if home, err := os.UserHomeDir(); err == nil {
@@ -115,61 +132,127 @@ func gitBranch(dir string) string {
 	return string(bytes.TrimSpace(out))
 }
 
-func cwdSegment(s *StatusInput) string {
-	if s.Worktree != nil {
-		origDir := s.Worktree.OriginalCWD
-		cwd := osc8("file://"+origDir, shortenPath(origDir))
-		wt := osc8("file://"+s.Worktree.Path, s.Worktree.Name)
-		return cwd + " 󰌹 " + wt
+func shortenBranch(branch string, budget int) string {
+	if len(branch) <= budget {
+		return branch
 	}
-	cwd := osc8("file://"+s.CWD, shortenPath(s.CWD))
-	branch := gitBranch(s.CWD)
-	if branch == "" {
-		return cwd + " "
+
+	// Shorten prefix `/`-segments to 1 char
+	parts := strings.Split(branch, "/")
+	if len(parts) > 1 {
+		for i := range parts[:len(parts)-1] {
+			if len(parts[i]) > 1 {
+				parts[i] = parts[i][:1]
+			}
+		}
+		branch = strings.Join(parts, "/")
+		if len(branch) <= budget {
+			return branch
+		}
 	}
-	if branch != "main" {
-		return cwd + " 󰘬 " + branch
+
+	// Truncate last segment at rightmost `-` or `_` that fits
+	ellipsis := "…"
+	last := parts[len(parts)-1]
+	prefix := ""
+	if len(parts) > 1 {
+		prefix = strings.Join(parts[:len(parts)-1], "/") + "/"
 	}
-	return cwd
+	remaining := budget - len(prefix) - utf8.RuneCountInString(ellipsis)
+	if remaining > 0 && remaining < len(last) {
+		cut := remaining
+		for cut > 0 {
+			if last[cut] == '-' || last[cut] == '_' {
+				return prefix + last[:cut] + ellipsis
+			}
+			cut--
+		}
+	}
+
+	// Hard truncate
+	if remaining > 0 {
+		return prefix + last[:remaining] + ellipsis
+	}
+	if budget > utf8.RuneCountInString(ellipsis) {
+		return branch[:budget-utf8.RuneCountInString(ellipsis)] + ellipsis
+	}
+	return branch[:budget]
 }
 
-func modelSegment(s *StatusInput) string {
+func cwdSegment(s *StatusInput) segmentResult {
+	if s.Worktree != nil {
+		origDir := s.Worktree.OriginalCWD
+		cwdDisplay := shortenPath(origDir)
+		cwd := osc8("file://"+origDir, cwdDisplay)
+		wtDisplay := s.Worktree.Name
+		wt := osc8("file://"+s.Worktree.Path, wtDisplay)
+		display := cwdDisplay + " 󰌹 " + wtDisplay
+		return seg8(cwd+" 󰌹 "+wt, display)
+	}
+	cwdDisplay := shortenPath(s.CWD)
+	cwd := osc8("file://"+s.CWD, cwdDisplay)
+	branch := gitBranch(s.CWD)
+	if branch == "" {
+		display := cwdDisplay + " "
+		return seg8(cwd+" ", display)
+	}
+	if branch != "main" {
+		display := cwdDisplay + " 󰘬 " + branch
+		text := cwd + " 󰘬 " + branch
+		r := seg8(text, display)
+		r.compact = func(budget int) segmentResult {
+			branchBudget := budget - utf8.RuneCountInString(cwdDisplay) - utf8.RuneCountInString(" 󰘬 ")
+			if branchBudget < 1 {
+				branchBudget = 1
+			}
+			short := shortenBranch(branch, branchBudget)
+			d := cwdDisplay + " 󰘬 " + short
+			return seg8(cwd+" 󰘬 "+short, d)
+		}
+		return r
+	}
+	return seg8(cwd, cwdDisplay)
+}
+
+func modelSegment(s *StatusInput) segmentResult {
 	name := s.Model.DisplayName
 	if i := strings.Index(name, " ("); i != -1 {
 		name = name[:i]
 	}
-	return name
+	return seg(name)
 }
 
-func contextSegment(s *StatusInput) string {
+func contextSegment(s *StatusInput) segmentResult {
 	u := s.ContextWindow.CurrentUsage
 	if u == nil {
-		return ""
+		return segmentResult{}
 	}
 	current := u.InputTokens + u.CacheCreationInputTokens + u.CacheReadInputTokens
 	if s.ContextWindow.ContextWindowSize == 0 {
-		return ""
+		return segmentResult{}
 	}
 	pct := current * 100 / s.ContextWindow.ContextWindowSize
 	icon := "󱘲"
 	if s.ContextWindow.ContextWindowSize >= 1_000_000 {
 		icon = "󱘳"
 	}
-	return fmt.Sprintf("%s %d%%", icon, pct)
+	display := fmt.Sprintf("%s %d%%", icon, pct)
+	return seg(display)
 }
 
-func tokensSegment(s *StatusInput) string {
+func tokensSegment(s *StatusInput) segmentResult {
 	if s.ContextWindow.CurrentUsage == nil {
-		return ""
+		return segmentResult{}
 	}
 	inK := float64(s.ContextWindow.TotalInputTokens) / 1000
 	outK := float64(s.ContextWindow.TotalOutputTokens) / 1000
-	return fmt.Sprintf("󰓢 %.1fk %.1fk", inK, outK)
+	display := fmt.Sprintf("󰓢 %.1fk %.1fk", inK, outK)
+	return seg(display)
 }
 
-func rateLimitsSegment(s *StatusInput) string {
+func rateLimitsSegment(s *StatusInput) segmentResult {
 	if s.RateLimits == nil {
-		return ""
+		return segmentResult{}
 	}
 	var parts []string
 	if r := s.RateLimits.FiveHour; r != nil {
@@ -178,16 +261,70 @@ func rateLimitsSegment(s *StatusInput) string {
 	if r := s.RateLimits.SevenDay; r != nil {
 		parts = append(parts, fmt.Sprintf("%.0f%%", r.UsedPercentage))
 	}
-	return osc8("https://claude.ai/settings/usage", "󰊚 "+strings.Join(parts, " "))
+	display := "󰊚 "+ strings.Join(parts, " ")
+	return seg8(osc8("https://claude.ai/settings/usage", display), display)
+}
+
+func termWidth() int {
+	tty, err := os.Open("/dev/tty")
+	if err != nil {
+		return 0
+	}
+	defer tty.Close()
+	w, _, err := term.GetSize(int(tty.Fd()))
+	if err != nil {
+		return 0
+	}
+	return w
+}
+
+func maxDisplay() int {
+	if w := termWidth(); w > 0 {
+		return w - 4
+	}
+	return 76
 }
 
 // Assemble segments with separator, skipping empty ones.
+// If total display width exceeds the terminal width, compact the longest compactable segment.
 func render(s *StatusInput, segments []segment, sep string) string {
-	var parts []string
-	for _, seg := range segments {
-		if v := seg(s); v != "" {
-			parts = append(parts, v)
+	var results []segmentResult
+	for _, fn := range segments {
+		if r := fn(s); r.display > 0 {
+			results = append(results, r)
 		}
+	}
+	if len(results) == 0 {
+		return ""
+	}
+
+	sepWidth := utf8.RuneCountInString(sep) * (len(results) - 1)
+	total := sepWidth
+	for _, r := range results {
+		total += r.display
+	}
+
+	limit := maxDisplay()
+	if total > limit {
+		// Find the longest compactable segment
+		bestIdx := -1
+		for i, r := range results {
+			if r.compact != nil && (bestIdx == -1 || r.display > results[bestIdx].display) {
+				bestIdx = i
+			}
+		}
+		if bestIdx >= 0 {
+			budget := results[bestIdx].display - (total - limit)
+			if budget < 1 {
+				budget = 1
+			}
+			results[bestIdx] = results[bestIdx].compact(budget)
+		}
+	}
+
+	var parts []string
+	for _, r := range results {
+		parts = append(parts, r.text)
 	}
 	return strings.Join(parts, sep)
 }
