@@ -11,6 +11,7 @@ import (
 	"golang.org/x/term"
 	"path/filepath"
 	"strings"
+	"time"
 	"unicode/utf8"
 )
 
@@ -254,6 +255,46 @@ func rateLimitsSegment(s *StatusInput) segmentResult {
 	if s.RateLimits == nil {
 		return segmentResult{}
 	}
+
+	now := time.Now().Unix()
+
+	// Check if either limit resets within 1 hour
+	type countdown struct {
+		icon      string
+		remaining float64
+		secsLeft  int64
+	}
+	var nearest *countdown
+
+	if r := s.RateLimits.FiveHour; r != nil && r.ResetsAt > 0 {
+		secsLeft := r.ResetsAt - now
+		if secsLeft > 0 && secsLeft <= 3600 {
+			nearest = &countdown{
+				icon:      "󱑏",
+				remaining: 100 - r.UsedPercentage,
+				secsLeft:  secsLeft,
+			}
+		}
+	}
+	if r := s.RateLimits.SevenDay; r != nil && r.ResetsAt > 0 {
+		secsLeft := r.ResetsAt - now
+		if secsLeft > 0 && secsLeft <= 3600 {
+			if nearest == nil || secsLeft < nearest.secsLeft {
+				nearest = &countdown{
+					icon:      "󱨴",
+					remaining: 100 - r.UsedPercentage,
+					secsLeft:  secsLeft,
+				}
+			}
+		}
+	}
+
+	if nearest != nil {
+		display := fmt.Sprintf("%s %.0f%% for %dm", nearest.icon, nearest.remaining, nearest.secsLeft/60)
+		return seg8(osc8("https://claude.ai/settings/usage", display), display)
+	}
+
+	// Normal mode: show both percentages
 	var parts []string
 	if r := s.RateLimits.FiveHour; r != nil {
 		parts = append(parts, fmt.Sprintf("%.0f%%", r.UsedPercentage))
@@ -261,7 +302,7 @@ func rateLimitsSegment(s *StatusInput) segmentResult {
 	if r := s.RateLimits.SevenDay; r != nil {
 		parts = append(parts, fmt.Sprintf("%.0f%%", r.UsedPercentage))
 	}
-	display := "󰊚 "+ strings.Join(parts, " ")
+	display := "󰊚 " + strings.Join(parts, " ")
 	return seg8(osc8("https://claude.ai/settings/usage", display), display)
 }
 
