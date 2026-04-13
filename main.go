@@ -202,10 +202,7 @@ func cwdSegment(s *StatusInput) segmentResult {
 		text := cwd + " 󰘬 " + branch
 		r := seg8(text, display)
 		r.compact = func(budget int) segmentResult {
-			branchBudget := budget - utf8.RuneCountInString(cwdDisplay) - utf8.RuneCountInString(" 󰘬 ")
-			if branchBudget < 1 {
-				branchBudget = 1
-			}
+			branchBudget := max(budget-utf8.RuneCountInString(cwdDisplay)-utf8.RuneCountInString(" 󰘬 "), 1)
 			short := shortenBranch(branch, branchBudget)
 			d := cwdDisplay + " 󰘬 " + short
 			return seg8(cwd+" 󰘬 "+short, d)
@@ -355,10 +352,7 @@ func render(s *StatusInput, segments []segment, sep string) string {
 			}
 		}
 		if bestIdx >= 0 {
-			budget := results[bestIdx].display - (total - limit)
-			if budget < 1 {
-				budget = 1
-			}
+			budget := max(results[bestIdx].display-(total-limit), 1)
 			results[bestIdx] = results[bestIdx].compact(budget)
 		}
 	}
