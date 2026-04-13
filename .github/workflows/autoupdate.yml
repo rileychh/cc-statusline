@@ -2,7 +2,7 @@ name: Auto-update Nix package
 
 on:
   push:
-    branches: ["main"]
+    tags: ["v*"]
   workflow_dispatch:
 
 concurrency:
@@ -46,7 +46,7 @@ jobs:
           commit-message: "chore: update Nix package"
           title: "chore: update Nix package"
           body: |
-            Automated update triggered by a push to `main`.
+            Automated update triggered by a new tag.
 
             - Updated version in `flake.nix` from the latest git tag
             - Regenerated `govendor.toml` lockfile
