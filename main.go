@@ -108,12 +108,15 @@ func shortenPath(dir string) string {
 	}
 	parts := strings.Split(dir, string(filepath.Separator))
 	for i := range parts[:max(len(parts)-1, 0)] {
-		if len(parts[i]) > 1 && parts[i] != "~" {
+		runes := []rune(parts[i])
+		if len(runes) > 1 && parts[i] != "~" {
 			cut := 1
-			if parts[i][0] == '.' {
+			if runes[0] == '.' {
 				cut = 2
 			}
-			parts[i] = parts[i][:cut]
+			if cut < len(runes) {
+				parts[i] = string(runes[:cut])
+			}
 		}
 	}
 	return strings.Join(parts, "/")
