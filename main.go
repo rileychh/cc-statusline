@@ -238,6 +238,9 @@ func contextSegment(s *StatusInput) segmentResult {
 		icon = "󱘳"
 	}
 	display := fmt.Sprintf("%s %d%%", icon, pct)
+	if s.TranscriptPath != "" {
+		return seg8(osc8("file://"+s.TranscriptPath, display), display)
+	}
 	return seg(display)
 }
 
