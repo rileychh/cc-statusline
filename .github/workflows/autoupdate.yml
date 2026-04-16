@@ -51,5 +51,6 @@ jobs:
             - Updated version in `flake.nix` from the latest git tag
             - Regenerated `govendor.toml` lockfile
             - Verified build with `nix build`
+          base: main
           branch: nix-autoupdate
           delete-branch: true
