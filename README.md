@@ -55,6 +55,10 @@ go install github.com/rileychh/cc-statusline@latest
 }
 ```
 
+### GitHub releases
+
+Prebuilt binaries for Linux, macOS, and Windows are available on the [releases page](https://github.com/rileychh/cc-statusline/releases). Note that downloaded binaries don't auto-update.
+
 ## Configure
 
 Add to `~/.claude/settings.json`:
