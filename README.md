@@ -59,6 +59,14 @@ go install github.com/rileychh/cc-statusline@latest
 
 Prebuilt binaries for Linux, macOS, and Windows are available on the [releases page](https://github.com/rileychh/cc-statusline/releases). Note that downloaded binaries don't auto-update.
 
+On Windows, run this in PowerShell to download the latest binary, install it to `%LOCALAPPDATA%\Programs\cc-statusline`, and add it to your user `PATH`:
+
+```powershell
+irm https://raw.githubusercontent.com/rileychh/cc-statusline/main/install.ps1 | iex
+```
+
+Restart any open shells so the updated `PATH` takes effect.
+
 ## Configure
 
 Add to `~/.claude/settings.json`:
