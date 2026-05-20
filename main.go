@@ -53,9 +53,24 @@ type RateLimits struct {
 	SevenDay *RateLimit `json:"seven_day"`
 }
 
+type Repo struct {
+	Host  string `json:"host"`
+	Owner string `json:"owner"`
+	Name  string `json:"name"`
+}
+
 type Workspace struct {
 	CurrentDir string `json:"current_dir"`
 	ProjectDir string `json:"project_dir"`
+	Repo       *Repo  `json:"repo"`
+}
+
+type Effort struct {
+	Level string `json:"level"`
+}
+
+type Thinking struct {
+	Enabled bool `json:"enabled"`
 }
 
 type Worktree struct {
@@ -69,9 +84,13 @@ type Worktree struct {
 type StatusInput struct {
 	CWD            string        `json:"cwd"`
 	SessionID      string        `json:"session_id"`
+	SessionName    string        `json:"session_name"`
 	TranscriptPath string        `json:"transcript_path"`
 	Version        string        `json:"version"`
 	Model          Model         `json:"model"`
+	Effort         *Effort       `json:"effort"`
+	Thinking       *Thinking     `json:"thinking"`
+	FastMode       bool          `json:"fast_mode"`
 	ContextWindow  ContextWindow `json:"context_window"`
 	Cost           Cost          `json:"cost"`
 	RateLimits     *RateLimits   `json:"rate_limits"`
