@@ -5,8 +5,8 @@ Single-file Go program (`main.go`) that renders Claude Code's statusline. Reads 
 ## Architecture
 
 - **Input types** — Go structs matching Claude Code's statusline JSON schema
-- **Segments** — functions with signature `func(*StatusInput) segmentResult`; return `segmentResult{}` to skip
-- **`render()`** — joins non-empty segment outputs with a separator
+- **Segments** — functions with signature `func(*StatusInput) string`; return `""` to skip
+- **`render()`** — joins non-empty segment outputs with a separator. Claude Code truncates the result if it exceeds terminal width
 - **`osc8()`** — wraps text in OSC 8 hyperlink escape sequences
 
 ## Conventions
@@ -14,4 +14,3 @@ Single-file Go program (`main.go`) that renders Claude Code's statusline. Reads 
 - Nerd Font icons are used for all indicators
 - Hidden directories shorten to 2 chars (`.claude` → `.c`), regular dirs to 1 char
 - Pointer types (`*struct`) for optional/nullable JSON fields
-- `golang.org/x/term` for terminal width detection

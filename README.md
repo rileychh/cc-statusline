@@ -11,8 +11,6 @@ A Go program for [Claude Code's statusline](https://docs.anthropic.com/en/docs/c
 
 Each line shows: **CWD** · **Model** · **Context usage** · **Tokens** (in/out) · **Rate limits** (5h/7d). Git branch or worktree name appears after the path when not on main. Empty segments are omitted automatically. CWD, worktree name, and rate limits are clickable hyperlinks.
 
-Long branch names are progressively shortened to fit the terminal width.
-
 When a rate limit resets within 1 hour, the display switches from used percentage to remaining capacity with a countdown:
 
 - Normal: both limits as used percentages
@@ -95,7 +93,7 @@ If you're using Nix, it can be installed with a single configuration:
 
 ## Customization
 
-Segments are composable functions with the signature `func(*StatusInput) segmentResult`. To add, remove, or reorder segments, edit the slice in `main()`:
+Segments are composable functions with the signature `func(*StatusInput) string`. To add, remove, or reorder segments, edit the slice in `main()`:
 
 ```go
 fmt.Print(render(&input, []segment{
@@ -107,4 +105,4 @@ fmt.Print(render(&input, []segment{
 }, " · "))
 ```
 
-Return `segmentResult{}` from a segment to skip it. Segments can provide a `compact` callback to support adaptive shortening when the statusline exceeds the terminal width.
+Return an empty string from a segment to skip it. Claude Code truncates the rendered line if it exceeds the terminal width.
