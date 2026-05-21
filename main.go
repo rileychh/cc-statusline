@@ -186,7 +186,7 @@ func cwdSegment(s *StatusInput) string {
 	cwd := osc8("file://"+s.CWD, cwdLabel(s, s.CWD))
 	branch := gitBranch(s.CWD)
 	if branch == "" {
-		return cwd + " "
+		return cwd
 	}
 	if branch != "main" {
 		return cwd + " 󰘬 " + branch
