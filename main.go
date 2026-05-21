@@ -128,6 +128,45 @@ func shortenPath(dir string) string {
 	return strings.Join(parts, "/")
 }
 
+// ghUser returns the active user for the given host as recorded in
+// ~/.config/gh/hosts.yml, or "" if gh is not configured for that host.
+func ghUser(host string) string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	data, err := os.ReadFile(filepath.Join(home, ".config", "gh", "hosts.yml"))
+	if err != nil {
+		return ""
+	}
+	inSection := false
+	for line := range strings.SplitSeq(string(data), "\n") {
+		if !inSection {
+			if line == host+":" {
+				inSection = true
+			}
+			continue
+		}
+		if line != "" && !strings.HasPrefix(line, " ") && !strings.HasPrefix(line, "\t") {
+			return ""
+		}
+		if rest, ok := strings.CutPrefix(line, "    user:"); ok {
+			return strings.TrimSpace(rest)
+		}
+	}
+	return ""
+}
+
+func cwdLabel(s *StatusInput, dir string) string {
+	if r := s.Workspace.Repo; r != nil {
+		if r.Owner == ghUser(r.Host) {
+			return r.Name
+		}
+		return r.Owner + "/" + r.Name
+	}
+	return shortenPath(dir)
+}
+
 func gitBranch(dir string) string {
 	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
 	cmd.Dir = dir
@@ -140,11 +179,11 @@ func gitBranch(dir string) string {
 
 func cwdSegment(s *StatusInput) string {
 	if s.Worktree != nil {
-		cwd := osc8("file://"+s.Worktree.OriginalCWD, shortenPath(s.Worktree.OriginalCWD))
+		cwd := osc8("file://"+s.Worktree.OriginalCWD, cwdLabel(s, s.Worktree.OriginalCWD))
 		wt := osc8("file://"+s.Worktree.Path, s.Worktree.Name)
 		return cwd + " 󰌹 " + wt
 	}
-	cwd := osc8("file://"+s.CWD, shortenPath(s.CWD))
+	cwd := osc8("file://"+s.CWD, cwdLabel(s, s.CWD))
 	branch := gitBranch(s.CWD)
 	if branch == "" {
 		return cwd + " "
@@ -155,10 +194,37 @@ func cwdSegment(s *StatusInput) string {
 	return cwd
 }
 
+func effortIcon(s *StatusInput) string {
+	var icons []string
+	if s.Thinking != nil && !s.Thinking.Enabled {
+		icons = append(icons, "󰹏")
+	} else if s.Effort != nil {
+		switch s.Effort.Level {
+		case "low":
+			icons = append(icons, "○")
+		case "medium":
+			icons = append(icons, "◐")
+		case "high":
+			icons = append(icons, "●")
+		case "xhigh":
+			icons = append(icons, "◉")
+		case "max":
+			icons = append(icons, "◈")
+		}
+	}
+	if s.FastMode {
+		icons = append(icons, "↯")
+	}
+	return strings.Join(icons, " ")
+}
+
 func modelSegment(s *StatusInput) string {
 	name := s.Model.DisplayName
 	if i := strings.Index(name, " ("); i != -1 {
 		name = name[:i]
+	}
+	if icon := effortIcon(s); icon != "" {
+		name += " " + icon
 	}
 	return name
 }

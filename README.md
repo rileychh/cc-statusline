@@ -11,6 +11,10 @@ A Go program for [Claude Code's statusline](https://docs.anthropic.com/en/docs/c
 
 Each line shows: **CWD** · **Model** · **Context usage** · **Tokens** (in/out) · **Rate limits** (5h/7d). Git branch or worktree name appears after the path when not on main. Empty segments are omitted automatically. CWD, worktree name, and rate limits are clickable hyperlinks.
 
+In a GitHub repo, the CWD shows `owner/repo` (or just `repo` when you're the owner per `gh` CLI). Otherwise it falls back to a shortened path.
+
+The current effort level, fast mode, and thinking state are indicated by glyphs after the model name.
+
 When a rate limit resets within 1 hour, the display switches from used percentage to remaining capacity with a countdown:
 
 - Normal: both limits as used percentages
