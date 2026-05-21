@@ -32,3 +32,12 @@ The OSC 8 hyperlink target stays `file://<dir>` in all cases. `ghUser` reads `~/
 - Thinking explicitly off (`thinking.enabled == false`) → `󰹏`, overrides effort
 - Otherwise `effort.level` → `○` low, `◐` medium, `●` high, `◉` xhigh, `◈` max
 - `fast_mode` → `↯`, independent and additive (e.g. `◉ ↯`)
+
+## Release flow
+
+Releases are tag-driven. Use lightweight tags (no `-a`/`-m`).
+
+1. Push commits to `main`, then `git tag vX.Y.Z && git push origin vX.Y.Z`.
+2. `.github/workflows/release.yml` runs GoReleaser and publishes binaries to GitHub Releases (used by `install.ps1` and `go install ...@vX.Y.Z`).
+3. `.github/workflows/autoupdate.yml` opens a PR in this repo updating `flake.nix` to the new version.
+4. Homebrew tap (`rileychh/homebrew-tap`) has its own daily `bump.yml` cron, or trigger it manually: `gh workflow run bump.yml -R rileychh/homebrew-tap -f formulae=cc-statusline`. It opens a PR; once CI is green, label it `pr-pull` to attach bottles and merge.
