@@ -224,7 +224,7 @@ func modelSegment(s *StatusInput) string {
 		name = name[:i]
 	}
 	if icon := effortIcon(s); icon != "" {
-		name += " " + icon
+		name = icon + " " + name
 	}
 	return name
 }

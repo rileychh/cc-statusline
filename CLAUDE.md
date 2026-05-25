@@ -27,7 +27,7 @@ The OSC 8 hyperlink target stays `file://<dir>` in all cases. `ghUser` reads `~/
 
 ## Model icons
 
-`modelSegment` appends mode glyphs after the model name. `effortIcon` returns up to two icons joined by a space:
+`modelSegment` prepends mode glyphs before the model name. `effortIcon` returns up to two icons joined by a space:
 
 - Thinking explicitly off (`thinking.enabled == false`) → `󰹏`, overrides effort
 - Otherwise `effort.level` → `○` low, `◐` medium, `●` high, `◉` xhigh, `◈` max
