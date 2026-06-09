@@ -250,13 +250,15 @@ func contextSegment(s *StatusInput) string {
 	return display
 }
 
-func tokensSegment(s *StatusInput) string {
-	if s.ContextWindow.CurrentUsage == nil {
-		return ""
+func costSegment(s *StatusInput) string {
+	var parts []string
+	if s.Cost.TotalCostUSD > 0 {
+		parts = append(parts, fmt.Sprintf("$%.2f", s.Cost.TotalCostUSD))
 	}
-	inK := float64(s.ContextWindow.TotalInputTokens) / 1000
-	outK := float64(s.ContextWindow.TotalOutputTokens) / 1000
-	return fmt.Sprintf("󰓢 %.1fk %.1fk", inK, outK)
+	if s.Cost.TotalLinesAdded > 0 || s.Cost.TotalLinesRemoved > 0 {
+		parts = append(parts, fmt.Sprintf("+%d -%d", s.Cost.TotalLinesAdded, s.Cost.TotalLinesRemoved))
+	}
+	return strings.Join(parts, " ")
 }
 
 func rateLimitsSegment(s *StatusInput) string {
@@ -342,7 +344,7 @@ func main() {
 		cwdSegment,
 		modelSegment,
 		contextSegment,
-		tokensSegment,
+		costSegment,
 		rateLimitsSegment,
 	}, " · "))
 }
