@@ -26,7 +26,7 @@
       in {
         packages.default = pkgs.buildGoApplication {
           pname = "cc-statusline";
-          version = "1.3.1";
+          version = "1.5.0";
           src = ./.;
           inherit go;
           modules = ./govendor.toml;
