@@ -9,7 +9,7 @@ A Go program for [Claude Code's statusline](https://docs.anthropic.com/en/docs/c
 -->
 ![Example outputs](example.png)
 
-Each line shows: **CWD** · **Model** · **Context usage** · **Cost** (session $ and lines ±) · **Rate limits** (5h/7d). Git branch or worktree name appears after the path when not on main. Empty segments are omitted automatically. CWD, worktree name, and rate limits are clickable hyperlinks.
+Each line shows: **CWD** · **Model** · **Context usage** · **Rate limits** (5h/7d) · **Cost** (session $ and lines ±). Git branch or worktree name appears after the path when not on main. Empty segments are omitted automatically. CWD, worktree name, and rate limits are clickable hyperlinks.
 
 In a GitHub repo, the CWD shows `owner/repo` (or just `repo` when you're the owner per `gh` CLI). Otherwise it falls back to a shortened path.
 
@@ -104,8 +104,8 @@ fmt.Print(render(&input, []segment{
     cwdSegment,
     modelSegment,
     contextSegment,
-    costSegment,
     rateLimitsSegment,
+    costSegment,
 }, " · "))
 ```
 

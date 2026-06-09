@@ -344,7 +344,7 @@ func main() {
 		cwdSegment,
 		modelSegment,
 		contextSegment,
-		costSegment,
 		rateLimitsSegment,
+		costSegment,
 	}, " · "))
 }
